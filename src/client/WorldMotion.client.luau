@@ -6,6 +6,9 @@
 	Doing this here (instead of on the server) keeps the game smooth: the server
 	no longer has to send every tiny movement to every player 60 times a second.
 	All players use the server's clock, so the bars line up for everyone.
+
+	It also adds the secret CHEAT PANEL: tap the little ✨ button on the left
+	(or press H on a keyboard) and pick a checkpoint to warp to. No chat needed!
 ]]
 
 local Players = game:GetService("Players")
@@ -13,6 +16,7 @@ local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local gooHitEvent = ReplicatedStorage:WaitForChild("CloudClimbGooHit") :: RemoteEvent
@@ -85,3 +89,96 @@ TextChatService.SendingMessage:Connect(function(message: TextChatMessage)
 		cheatEvent:FireServer(message.Text)
 	end
 end)
+
+--------------------------------------------------------------------------------
+-- CHEAT PANEL: a ✨ button (or the H key) opens a grid of checkpoint buttons.
+-- Works even when chat is turned off on the account.
+--------------------------------------------------------------------------------
+local finalStage = ReplicatedStorage:GetAttribute("CloudClimbFinalStage")
+while type(finalStage) ~= "number" do
+	ReplicatedStorage:GetAttributeChangedSignal("CloudClimbFinalStage"):Wait()
+	finalStage = ReplicatedStorage:GetAttribute("CloudClimbFinalStage")
+end
+
+local screen = Instance.new("ScreenGui")
+screen.Name = "CloudClimbCheats"
+screen.ResetOnSpawn = false
+
+local function rounded(gui: GuiObject, radius: number)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, radius)
+	corner.Parent = gui
+end
+
+local openButton = Instance.new("TextButton")
+openButton.Name = "Open"
+openButton.Size = UDim2.fromOffset(44, 44)
+openButton.Position = UDim2.new(0, 12, 0.5, -22)
+openButton.BackgroundColor3 = Color3.fromRGB(185, 135, 255)
+openButton.BackgroundTransparency = 0.3
+openButton.Text = "✨"
+openButton.TextScaled = true
+openButton.Font = Enum.Font.FredokaOne
+openButton.Parent = screen
+rounded(openButton, 22)
+
+local panel = Instance.new("Frame")
+panel.Name = "Panel"
+panel.Visible = false
+panel.Size = UDim2.fromOffset(212, 0)
+panel.AutomaticSize = Enum.AutomaticSize.Y
+panel.Position = UDim2.new(0, 64, 0.5, -90)
+panel.BackgroundColor3 = Color3.fromRGB(255, 240, 250)
+panel.Parent = screen
+rounded(panel, 14)
+
+local padding = Instance.new("UIPadding")
+padding.PaddingTop = UDim.new(0, 8)
+padding.PaddingBottom = UDim.new(0, 8)
+padding.PaddingLeft = UDim.new(0, 8)
+padding.PaddingRight = UDim.new(0, 8)
+padding.Parent = panel
+
+local layout = Instance.new("UIGridLayout")
+layout.CellSize = UDim2.fromOffset(60, 44)
+layout.CellPadding = UDim2.fromOffset(6, 6)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = panel
+
+local COLORS = {
+	Color3.fromRGB(255, 120, 170),
+	Color3.fromRGB(255, 170, 90),
+	Color3.fromRGB(255, 225, 100),
+	Color3.fromRGB(110, 230, 160),
+	Color3.fromRGB(100, 175, 255),
+	Color3.fromRGB(185, 135, 255),
+}
+
+for stage = 1, finalStage do
+	local button = Instance.new("TextButton")
+	button.Name = "Warp" .. stage
+	button.LayoutOrder = stage
+	button.Text = if stage == finalStage then "🏆" else tostring(stage)
+	button.TextScaled = true
+	button.Font = Enum.Font.FredokaOne
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.BackgroundColor3 = COLORS[(stage - 1) % #COLORS + 1]
+	button.Parent = panel
+	rounded(button, 10)
+	button.Activated:Connect(function()
+		cheatEvent:FireServer("hh " .. stage)
+		panel.Visible = false
+	end)
+end
+
+local function togglePanel()
+	panel.Visible = not panel.Visible
+end
+openButton.Activated:Connect(togglePanel)
+UserInputService.InputBegan:Connect(function(input, typing)
+	if not typing and input.KeyCode == Enum.KeyCode.H then
+		togglePanel()
+	end
+end)
+
+screen.Parent = player:WaitForChild("PlayerGui")

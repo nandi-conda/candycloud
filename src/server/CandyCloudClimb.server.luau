@@ -699,6 +699,7 @@ for i, buildObstacle in course do
 	end
 end
 local FINAL_STAGE = stage
+ReplicatedStorage:SetAttribute("CloudClimbFinalStage", FINAL_STAGE) -- the cheat panel reads this
 
 -- Pink goo far below: fall off and you bounce back to your checkpoint
 local goo = makePart({
