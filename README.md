@@ -21,6 +21,7 @@ An original, kid-friendly Roblox obby. You climb a rainbow course floating in th
 - White glowing platforms are **checkpoints**. Fall off and you pop back to the last one.
 - The scoreboard (top right) shows **Stage**, **Stars** and **Wins**.
 - **Running:** hold Shift on a computer, tap the **Run** button on a phone or tablet, or click the left stick on a controller.
+- **Cheat code:** type `hh 5` in chat to warp to checkpoint 5 (any number from 1 to 9, where 9 is the trophy).
 - A green **Play again** pad in the corner of the trophy platform sends you back to the start.
 
 ## Setup in Roblox Studio (about 5 minutes)
@@ -32,7 +33,7 @@ An original, kid-friendly Roblox obby. You climb a rainbow course floating in th
 5. Delete the `print("Hello world!")` line that's already in it.
 6. Open [`src/server/CandyCloudClimb.server.luau`](src/server/CandyCloudClimb.server.luau), copy **everything**, and paste it into the script.
 7. Optional: right-click the script, choose **Rename**, and call it `CandyCloudClimb`.
-8. **Add running:** in Explorer, open **StarterPlayer**, hover over **StarterPlayerScripts**, click **➕** and choose **LocalScript** (not Script!). Delete its `print` line and paste in everything from [`src/client/Sprint.client.luau`](src/client/Sprint.client.luau).
+8. **Add the two player scripts:** in Explorer, open **StarterPlayer**, hover over **StarterPlayerScripts**, click **➕** and choose **LocalScript** (not Script!). Delete its `print` line and paste in everything from [`src/client/WorldMotion.client.luau`](src/client/WorldMotion.client.luau) (this spins the goo bars and bobs the stars). Do it once more with [`src/client/Sprint.client.luau`](src/client/Sprint.client.luau) (this adds running).
 9. Press **Play** (or F5). After a second you'll spawn on the start platform with the course in front of you.
 10. Press **Stop** (Shift+F5) to go back to editing.
 
@@ -83,6 +84,7 @@ candycloud/
 ├── src/server/
 │   └── CandyCloudClimb.server.luau   the whole level and game rules
 └── src/client/
+    ├── WorldMotion.client.luau       spins goo bars, bobs stars (on each screen, no lag)
     └── Sprint.client.luau            running (Shift / Run button)
 ```
 

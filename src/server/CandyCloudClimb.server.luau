@@ -18,8 +18,9 @@
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
+local CollectionService = game:GetService("CollectionService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 --------------------------------------------------------------------------------
 -- CONFIG: safe and fun to tweak
@@ -205,17 +206,24 @@ local function sendToCheckpoint(player: Player)
 	end
 end
 
+local function hitGoo(player: Player)
+	if busy[player] then
+		return
+	end
+	busy[player] = true
+	toast(player, "Oops! Sticky goo! 💦", GOO_COLOR)
+	sendToCheckpoint(player)
+	task.delay(1, function()
+		busy[player] = nil
+	end)
+end
+
 -- Anything you call this on becomes "goo": touching it sends you back
 local function makeGoo(part: BasePart)
 	part.Touched:Connect(function(hit)
 		local player = playerFromHit(hit)
-		if player and not busy[player] then
-			busy[player] = true
-			toast(player, "Oops! Sticky goo! 💦", GOO_COLOR)
-			sendToCheckpoint(player)
-			task.delay(1, function()
-				busy[player] = nil
-			end)
+		if player then
+			hitGoo(player)
 		end
 	end)
 end
@@ -252,8 +260,8 @@ end
 --------------------------------------------------------------------------------
 -- STARS (collectibles)
 --------------------------------------------------------------------------------
-local stars: { { part: BasePart, base: Vector3, phase: number } } = {}
-
+-- Stars sit still on the server. WorldMotion.client.luau makes them bob and spin
+-- on each player's screen, which is smooth and costs no network traffic.
 local function addStar(position: Vector3)
 	local star = makePart({
 		Name = "Star",
@@ -267,10 +275,9 @@ local function addStar(position: Vector3)
 	local sparkles = Instance.new("Sparkles")
 	sparkles.SparkleColor = STAR_COLOR
 	sparkles.Parent = star
-	local light = Instance.new("PointLight")
-	light.Color = STAR_COLOR
-	light.Range = 8
-	light.Parent = star
+	star:SetAttribute("Base", position)
+	star:SetAttribute("Phase", math.random() * 6)
+	CollectionService:AddTag(star, "CloudStar")
 
 	local collected = false
 	star.Touched:Connect(function(hit)
@@ -289,21 +296,23 @@ local function addStar(position: Vector3)
 		end
 		star.Transparency = 1
 		sparkles.Enabled = false
-		light.Enabled = false
 		task.delay(CONFIG.StarRespawnSeconds, function()
 			star.Transparency = 0
 			sparkles.Enabled = true
-			light.Enabled = true
 			collected = false
 		end)
 	end)
-	table.insert(stars, { part = star, base = position, phase = math.random() * 6 })
 end
 
 --------------------------------------------------------------------------------
 -- SPINNING GOO BARS
 --------------------------------------------------------------------------------
-local spinners: { { part: BasePart, pivot: CFrame, speed: number, angle: number } } = {}
+-- The bars are spun by WorldMotion.client.luau on each player's screen (smooth, no lag).
+-- Every screen uses the same server clock, so everyone sees the bars in the same place.
+-- When a bar hits you, your game tells the server through this RemoteEvent.
+local gooHitEvent = Instance.new("RemoteEvent")
+gooHitEvent.Name = "CloudClimbGooHit"
+gooHitEvent.Parent = ReplicatedStorage
 
 local function addSpinner(center: Vector3, length: number, speed: number, startAngle: number)
 	local bar = makePart({
@@ -313,8 +322,12 @@ local function addSpinner(center: Vector3, length: number, speed: number, startA
 		Color = GOO_COLOR,
 		Material = Enum.Material.Neon,
 		CanCollide = false,
+		CanTouch = false,
 	})
-	makeGoo(bar)
+	bar:SetAttribute("Pivot", CFrame.new(center))
+	bar:SetAttribute("Speed", speed)
+	bar:SetAttribute("StartAngle", startAngle)
+	CollectionService:AddTag(bar, "CloudSpinner")
 	-- a little candy post in the middle so you can see what it spins around
 	makePart({
 		Name = "SpinnerPost",
@@ -323,8 +336,8 @@ local function addSpinner(center: Vector3, length: number, speed: number, startA
 		CFrame = CFrame.new(center + Vector3.new(0, 0.5, 0)) * CFrame.Angles(0, 0, math.rad(90)),
 		Color = Color3.new(1, 1, 1),
 		CanCollide = false,
+		CanTouch = false,
 	})
-	table.insert(spinners, { part = bar, pivot = CFrame.new(center), speed = speed, angle = startAngle })
 end
 
 --------------------------------------------------------------------------------
@@ -383,7 +396,6 @@ local function spinnerBridge(edge: Vector3, bars: number, speed: number): Vector
 		Color3.fromRGB(190, 230, 255),
 		"CandyBridge"
 	)
-	bridge.Material = Enum.Material.Glass
 	for i = 1, bars do
 		local z = edge.Z + 3 + 4 + (i - 0.5) * spacing
 		addSpinner(Vector3.new(0, edge.Y + 1.5, z), 14, speed * (if i % 2 == 0 then -1 else 1), i)
@@ -711,7 +723,6 @@ for _ = 1, 45 do
 			Size = Vector3.new(d, d, d),
 			Position = center + Vector3.new(rng:NextNumber(-6, 6), rng:NextNumber(-1, 2), rng:NextNumber(-4, 4)),
 			Color = Color3.new(1, 1, 1),
-			Transparency = 0.25,
 			CanCollide = false,
 			CanTouch = false,
 			CastShadow = false,
@@ -720,19 +731,38 @@ for _ = 1, 45 do
 end
 
 --------------------------------------------------------------------------------
--- ANIMATION: spin the goo bars and bob the stars
+-- SPINNING BAR HITS (reported by WorldMotion.client.luau)
 --------------------------------------------------------------------------------
-RunService.Heartbeat:Connect(function(dt)
-	for _, spinner in spinners do
-		spinner.angle += spinner.speed * dt
-		spinner.part.CFrame = spinner.pivot * CFrame.Angles(0, spinner.angle, 0)
-	end
-	local t = os.clock()
-	for _, star in stars do
-		star.part.CFrame = CFrame.new(star.base + Vector3.new(0, math.sin(t * 2 + star.phase) * 0.6, 0))
-			* CFrame.Angles(0, t * 2, 0)
+gooHitEvent.OnServerEvent:Connect(function(player)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if humanoid and humanoid.Health > 0 then
+		hitGoo(player)
 	end
 end)
+
+--------------------------------------------------------------------------------
+-- CHEAT CODE: type "hh 5" in chat to jump to checkpoint 5
+--------------------------------------------------------------------------------
+local function onChat(player: Player, message: string)
+	local number = string.match(string.lower(message), "^%s*hh%s+(%d+)%s*$")
+	if not number then
+		return
+	end
+	local target = tonumber(number)
+	if not target or target < 1 or target > FINAL_STAGE then
+		toast(player, "Pick a checkpoint from 1 to " .. FINAL_STAGE, GOO_COLOR)
+		return
+	end
+	playerStage[player] = target
+	finishedRun[player] = false
+	local stageStat = getStat(player, "Stage")
+	if stageStat then
+		stageStat.Value = target
+	end
+	sendToCheckpoint(player)
+	toast(player, if target == FINAL_STAGE then "✨ Cheat! Warped to the trophy ✨" else "✨ Cheat! Warped to checkpoint " .. target .. " ✨", RAINBOW[6])
+end
 
 --------------------------------------------------------------------------------
 -- PLAYERS JOINING
@@ -768,6 +798,10 @@ local function setupPlayer(player: Player)
 	label.Text = ""
 	label.Parent = screen
 	screen.Parent = player:WaitForChild("PlayerGui")
+
+	player.Chatted:Connect(function(message)
+		onChat(player, message)
+	end)
 
 	player.CharacterAdded:Connect(function(character)
 		local root = character:WaitForChild("HumanoidRootPart", 5)
