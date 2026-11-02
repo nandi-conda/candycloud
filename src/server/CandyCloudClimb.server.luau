@@ -742,13 +742,21 @@ gooHitEvent.OnServerEvent:Connect(function(player)
 end)
 
 --------------------------------------------------------------------------------
--- CHEAT CODE: type "hh 5" in chat to jump to checkpoint 5
+-- CHEAT CODE: type "hh 5" (or "/hh 5") in chat to jump to checkpoint 5.
+-- Roblox has two chat systems, so we listen three ways: Player.Chatted (old chat),
+-- a /hh chat command, and a message from WorldMotion.client.luau (new chat).
 --------------------------------------------------------------------------------
+local lastCheat: { [Player]: number } = {}
 local function onChat(player: Player, message: string)
-	local number = string.match(string.lower(message), "^%s*hh%s+(%d+)%s*$")
+	local number = string.match(string.lower(message), "^%s*/?hh%s+(%d+)%s*$")
 	if not number then
 		return
 	end
+	-- the same message can arrive through more than one route; only act once
+	if os.clock() - (lastCheat[player] or 0) < 1 then
+		return
+	end
+	lastCheat[player] = os.clock()
 	local target = tonumber(number)
 	if not target or target < 1 or target > FINAL_STAGE then
 		toast(player, "Pick a checkpoint from 1 to " .. FINAL_STAGE, GOO_COLOR)
@@ -763,6 +771,26 @@ local function onChat(player: Player, message: string)
 	sendToCheckpoint(player)
 	toast(player, if target == FINAL_STAGE then "✨ Cheat! Warped to the trophy ✨" else "✨ Cheat! Warped to checkpoint " .. target .. " ✨", RAINBOW[6])
 end
+
+local cheatEvent = Instance.new("RemoteEvent")
+cheatEvent.Name = "CloudClimbCheat"
+cheatEvent.Parent = ReplicatedStorage
+cheatEvent.OnServerEvent:Connect(function(player, message)
+	if type(message) == "string" and #message <= 40 then
+		onChat(player, message)
+	end
+end)
+
+local warpCommand = Instance.new("TextChatCommand")
+warpCommand.Name = "CloudClimbWarp"
+warpCommand.PrimaryAlias = "/hh"
+warpCommand.Triggered:Connect(function(source: TextSource, text: string)
+	local player = Players:GetPlayerByUserId(source.UserId)
+	if player then
+		onChat(player, text)
+	end
+end)
+warpCommand.Parent = game:GetService("TextChatService")
 
 --------------------------------------------------------------------------------
 -- PLAYERS JOINING
@@ -837,6 +865,7 @@ Players.PlayerRemoving:Connect(function(player)
 	finishedRun[player] = nil
 	busy[player] = nil
 	toastCount[player] = nil
+	lastCheat[player] = nil
 end)
 
 print(CONFIG.GameName .. " built! Stages: " .. FINAL_STAGE)

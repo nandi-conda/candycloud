@@ -21,7 +21,7 @@ An original, kid-friendly Roblox obby. You climb a rainbow course floating in th
 - White glowing platforms are **checkpoints**. Fall off and you pop back to the last one.
 - The scoreboard (top right) shows **Stage**, **Stars** and **Wins**.
 - **Running:** hold Shift on a computer, tap the **Run** button on a phone or tablet, or click the left stick on a controller.
-- **Cheat code:** type `hh 5` in chat to warp to checkpoint 5 (any number from 1 to 9, where 9 is the trophy).
+- **Cheat code:** press `/` (or click the chat bubble at the top left), type `/hh 5` and press Enter to warp to checkpoint 5. Any number from 1 to 9 works (9 is the trophy). Plain `hh 5` works too, but `/hh 5` stays hidden from other players.
 - A green **Play again** pad in the corner of the trophy platform sends you back to the start.
 
 ## Setup in Roblox Studio (about 5 minutes)

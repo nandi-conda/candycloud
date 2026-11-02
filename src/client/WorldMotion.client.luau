@@ -12,6 +12,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextChatService = game:GetService("TextChatService")
 
 local player = Players.LocalPlayer
 local gooHitEvent = ReplicatedStorage:WaitForChild("CloudClimbGooHit") :: RemoteEvent
@@ -73,5 +74,14 @@ RunService.RenderStepped:Connect(function()
 			local t = now % math.pi -- the motion repeats every pi seconds, so this stays smooth
 			star.CFrame = CFrame.new(base + Vector3.new(0, math.sin(t * 2 + phase) * 0.6, 0)) * CFrame.Angles(0, t * 2, 0)
 		end
+	end
+end)
+
+-- CHEAT CODE helper: when you type "hh <number>" in the new Roblox chat,
+-- pass it to the server, which checks the number and warps you.
+local cheatEvent = ReplicatedStorage:WaitForChild("CloudClimbCheat") :: RemoteEvent
+TextChatService.SendingMessage:Connect(function(message: TextChatMessage)
+	if string.match(string.lower(message.Text), "^%s*/?hh%s+%d+%s*$") then
+		cheatEvent:FireServer(message.Text)
 	end
 end)
