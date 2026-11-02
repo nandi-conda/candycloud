@@ -20,6 +20,7 @@ An original, kid-friendly Roblox obby. You climb a rainbow course floating in th
 
 - White glowing platforms are **checkpoints**. Fall off and you pop back to the last one.
 - The scoreboard (top right) shows **Stage**, **Stars** and **Wins**.
+- **Running:** hold Shift on a computer, tap the **Run** button on a phone or tablet, or click the left stick on a controller.
 - A green **Play again** pad in the corner of the trophy platform sends you back to the start.
 
 ## Setup in Roblox Studio (about 5 minutes)
@@ -31,10 +32,11 @@ An original, kid-friendly Roblox obby. You climb a rainbow course floating in th
 5. Delete the `print("Hello world!")` line that's already in it.
 6. Open [`src/server/CandyCloudClimb.server.luau`](src/server/CandyCloudClimb.server.luau), copy **everything**, and paste it into the script.
 7. Optional: right-click the script, choose **Rename**, and call it `CandyCloudClimb`.
-8. Press **Play** (or F5). After a second you'll spawn on the start platform with the course in front of you.
-9. Press **Stop** (Shift+F5) to go back to editing.
+8. **Add running:** in Explorer, open **StarterPlayer**, hover over **StarterPlayerScripts**, click **➕** and choose **LocalScript** (not Script!). Delete its `print` line and paste in everything from [`src/client/Sprint.client.luau`](src/client/Sprint.client.luau).
+9. Press **Play** (or F5). After a second you'll spawn on the start platform with the course in front of you.
+10. Press **Stop** (Shift+F5) to go back to editing.
 
-**Controls:** WASD or arrow keys to move, Space to jump, right mouse button to turn the camera, mouse wheel to zoom.
+**Controls:** WASD or arrow keys to move, **hold Shift to run**, Space to jump, right mouse button to turn the camera, mouse wheel to zoom.
 
 ### Play it with friends or on other devices
 
@@ -54,6 +56,7 @@ Everything fun is at the top of the script:
 Easy first edits to try:
 - Make the bounce pads super bouncy: `BouncePower = 140`
 - Make spinners slower: `SpinnerSpeedEasy = 0.8`
+- Run even faster: in `Sprint.client.luau`, change `RUN_SPEED = 32` to `40`
 - Rename the game: `GameName = "Lily's Sky Party"`
 
 ## Developer setup with pixi (optional, for code editors)
@@ -77,8 +80,10 @@ candycloud/
 ├── pixi.toml                 tools and tasks
 ├── default.project.json      Rojo project (maps src/server → ServerScriptService)
 ├── stylua.toml / selene.toml formatter and linter settings
-└── src/server/
-    └── CandyCloudClimb.server.luau   the whole game
+├── src/server/
+│   └── CandyCloudClimb.server.luau   the whole level and game rules
+└── src/client/
+    └── Sprint.client.luau            running (Shift / Run button)
 ```
 
 ## Notes

@@ -32,6 +32,7 @@ local CONFIG = {
 	SpinnerSpeedEasy = 1.4, -- spinning goo bar speed (radians per second)
 	SpinnerSpeedHard = 2.0,
 	TileReturnSeconds = 2.5, -- how long vanishing tiles stay gone
+	WalkSpeed = 20, -- normal walking speed (Roblox default is 16). Running is in Sprint.client.luau
 }
 
 --------------------------------------------------------------------------------
@@ -772,6 +773,10 @@ local function setupPlayer(player: Player)
 		local root = character:WaitForChild("HumanoidRootPart", 5)
 		if not root then
 			return
+		end
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.WalkSpeed = CONFIG.WalkSpeed
 		end
 		task.wait(0.1)
 		if (playerStage[player] or 1) > 1 then
