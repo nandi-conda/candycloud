@@ -1,0 +1,28 @@
+[workspace]
+name = "candycloud"
+version = "0.1.0"
+description = "Candy Cloud Climb: a kid-friendly Roblox obby"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "osx-64", "win-64"]
+
+[dependencies]
+# Rojo isn't packaged on conda-forge, so we build it once with cargo (see install-rojo).
+rust = "*"
+stylua = "*"
+selene = "*"
+
+[tasks]
+# Builds Rojo into .pixi/rojo the first time (takes a few minutes), then is instant.
+install-rojo = "cargo install rojo --locked --root .pixi/rojo"
+
+# Live-sync the scripts into Roblox Studio (open the Rojo plugin and click Connect).
+serve = { cmd = ".pixi/rojo/bin/rojo serve default.project.json", depends-on = ["install-rojo"] }
+
+# Build a place file you can open directly in Roblox Studio.
+build = { cmd = ".pixi/rojo/bin/rojo build default.project.json -o CandyCloudClimb.rbxlx", depends-on = ["install-rojo"] }
+
+# Format and lint the Luau code.
+fmt = "stylua src"
+lint = "selene src"
+check = { depends-on = ["fmt-check", "lint"] }
+fmt-check = "stylua --check src"

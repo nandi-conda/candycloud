@@ -1,0 +1,10 @@
+{
+  "name": "candy-cloud-climb",
+  "tree": {
+    "$className": "DataModel",
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "$path": "src/server"
+    }
+  }
+}
